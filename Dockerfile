@@ -18,6 +18,10 @@ RUN npm install
 # 复制源代码
 COPY . .
 
+# 构建时变量：NEXT_PUBLIC_ 前缀的变量必须在 build 阶段注入
+ARG NEXT_PUBLIC_DRAWIO_BASE_URL=https://embed.diagrams.net
+ENV NEXT_PUBLIC_DRAWIO_BASE_URL=${NEXT_PUBLIC_DRAWIO_BASE_URL}
+
 # 构建应用
 RUN npm run build
 
