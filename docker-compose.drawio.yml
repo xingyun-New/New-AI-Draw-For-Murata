@@ -1,0 +1,48 @@
+# Draw.io Server - 独立的 draw.io 服务
+# 使用方法：
+#   1. 启动：docker-compose up -d
+#   2. 停止：docker-compose down
+#   3. 查看日志：docker-compose logs -f
+#   4. 访问：http://localhost:8080
+
+services:
+  drawio:
+    image: jgraph/drawio:latest
+    container_name: drawio-server
+    ports:
+      - "8080:8080"
+    volumes:
+      # 持久化配置（可选）
+      - drawio-config:/var/lib/drawio/config
+      # 持久化导出文件（可选）
+      - drawio-export:/var/lib/drawio/export
+    environment:
+      # 基本配置
+      - DRAWIO_BASE_URL=http://localhost:8080
+      # 允许从其他域访问（重要！让 next-ai-draw-io 可以嵌入）
+      - DRAWIO_CORS_ENABLE=true
+      # 可选：配置日志级别
+      - DRAWIO_LOG_LEVEL=info
+      # 可选：限制导出功能
+      # - DRAWIO_EXPORT_PDF=true
+      # - DRAWIO_EXPORT_SVG=true
+      # 可选：配置内存限制
+      # - JAVA_OPTS=-Xmx2g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  drawio-config:
+    driver: local
+  drawio-export:
+    driver: local
+
+networks:
+  default:
+    name: drawio-network
+    driver: bridge
