@@ -137,6 +137,8 @@ function saveConfig(config: MultiModelConfig): void {
 /**
  * Merge PostgreSQL `model_configs` rows into local config as `db-<uuid>` providers.
  * Preserves non-database providers (local user entries).
+ * IMPORTANT: When updating existing db-* providers, preserve user's entered API key
+ * to prevent it from being cleared by the masked "***" value from the server.
  */
 function mergeDatabaseRowsIntoProviders(
     prev: MultiModelConfig,
@@ -150,6 +152,10 @@ function mergeDatabaseRowsIntoProviders(
         if (!(normalized in PROVIDER_INFO)) continue
         const providerName = normalized as ProviderName
         const pid = `db-${row.id}`
+
+        // Check if this provider already exists in local state
+        const existingProvider = prev.providers.find((p) => p.id === pid)
+
         const model = createModelConfig(row.model_id)
         model.validated = true
         const base = createProviderConfig(providerName)
@@ -159,7 +165,15 @@ function mergeDatabaseRowsIntoProviders(
             row.base_url && row.base_url.trim().length > 0
                 ? row.base_url
                 : base.baseUrl
-        base.apiKey = row.api_key && row.api_key !== "***" ? row.api_key : ""
+
+        // If provider exists in local state, preserve user's entered API key
+        // (the server returns "***" which would otherwise clear the key)
+        if (existingProvider && existingProvider.apiKey) {
+            base.apiKey = existingProvider.apiKey
+        } else {
+            base.apiKey = row.api_key && row.api_key !== "***" ? row.api_key : ""
+        }
+
         base.models = [model]
         base.validated = true
         dbProviders.push(base)
